@@ -1,0 +1,112 @@
+➜  git:(master) ✗ docker build -t httpserver:latest .
+Sending build context to Docker daemon  3.584kB
+Step 1/10 : FROM golang:1.17 as mod
+1.17: Pulling from library/golang
+bb7d5a84853b: Pull complete 
+f02b617c6a8c: Pull complete 
+d32e17419b7e: Pull complete 
+c9d2d81226a4: Pull complete 
+7bd370e02e50: Pull complete 
+d51542c3a854: Pull complete 
+a7be4545b9d7: Pull complete 
+Digest: sha256:124966f5d54a41317ee81ccfe5f849d4f0deef4ed3c5c32c20be855c51c15027
+Status: Downloaded newer image for golang:1.17
+ ---> 9f8b89ee4475
+Step 2/10 : ARG GOPROXY=https://goproxy.cn,https://mirrors.aliyun.com/goproxy/,https://goproxy.io,direct
+ ---> Running in 2054fbfb2209
+Removing intermediate container 2054fbfb2209
+ ---> 86a8b8e8bab7
+Step 3/10 : WORKDIR /root/myapp/
+ ---> Running in db79d62bec8f
+Removing intermediate container db79d62bec8f
+ ---> e0a421b9fed9
+Step 4/10 : FROM mod as builder
+ ---> e0a421b9fed9
+Step 5/10 : COPY ./ ./
+ ---> 0f0b6e9dcced
+Step 6/10 : RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o httpserver main.go
+ ---> Running in 5c1289e166d2
+Removing intermediate container 5c1289e166d2
+ ---> 5bed46636ed9
+Step 7/10 : FROM alpine:3.11.6
+3.11.6: Pulling from library/alpine
+cbdbe7a5bc2a: Pull complete 
+Digest: sha256:9a839e63dad54c3a6d1834e29692c8492d93f90c59c978c1ed79109ea4fb9a54
+Status: Downloaded newer image for alpine:3.11.6
+ ---> f70734b6a266
+Step 8/10 : WORKDIR /root
+ ---> Running in b4706d2d2352
+Removing intermediate container b4706d2d2352
+ ---> 67525cde8355
+Step 9/10 : COPY --from=builder /root/myapp/httpserver /httpserver
+ ---> 4dbf2c4b812e
+Step 10/10 : ENTRYPOINT ["/httpserver"]
+ ---> Running in f3f25fddec93
+Removing intermediate container f3f25fddec93
+ ---> 777736f1b276
+Successfully built 777736f1b276
+Successfully tagged httpserver:latest
+
+➜  git:(master) ✗ docker images                      
+REPOSITORY                                                                  TAG                 IMAGE ID            CREATED             SIZE
+httpserver                                                                  latest              777736f1b276        10 seconds ago      11.7MB
+<none>                                                                      <none>              5bed46636ed9        14 seconds ago      962MB
+golang                                                                      1.17                9f8b89ee4475        4 days ago          941MB
+alpine                                                                      3.11.6              f70734b6a266        18 months ago       5.61MB
+
+➜  git:(master) ✗ docker tag httpserver:latest jszx1995/httpserver:latest  
+
+➜  git:(master) ✗ docker login                                                   
+Login with your Docker ID to push and pull images from Docker Hub. If you don't have a Docker ID, head over to https://hub.docker.com to create one.
+Username: jszx1995
+Password: 
+Login Succeeded
+
+➜  git:(master) ✗ docker push jszx1995/httpserver:latest
+The push refers to repository [docker.io/jszx1995/httpserver]
+52a6e9d5c627: Pushed 
+3e207b409db3: Mounted from library/alpine 
+latest: digest: sha256:83bdb6bcbe1e0947674dee7ad479a1ba2063a3cddbe7a84407295d740290c0a9 size: 739
+
+git:(master) ✗ docker run -d -p 8000:8000 --name httpserver 777736f1b276 
+2cd622940657347237ee5ae90b41c2fbb1e8c8beba02ef79c54116c2af8e78e9
+
+
+➜  git:(master) ✗ docker ps                                                 
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS                    NAMES
+2cd622940657        777736f1b276        "/httpserver"       9 seconds ago       Up 9 seconds        0.0.0.0:8000->8000/tcp   httpserver
+
+➜  git:(master) ✗ curl 127.0.0.1:8000
+User-Agent=[curl/7.64.1]
+Accept=[*/*]
+VERSION=
+
+
+# docker inspect 1b3e1399ee0d|grep -i pid
+            "Pid": 97916,
+            "PidMode": "",
+            "PidsLimit": null,
+
+# nsenter -t 97916 ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:16:3e:0c:3b:f0 brd ff:ff:ff:ff:ff:ff
+    inet 172.19.95.90/20 brd 172.19.95.255 scope global dynamic eth0
+       valid_lft 312914902sec preferred_lft 312914902sec
+    inet6 fe80::216:3eff:fe0c:3bf0/64 scope link 
+       valid_lft forever preferred_lft forever
+3: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:34:c1:e9:d0 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:34ff:fec1:e9d0/64 scope link 
+       valid_lft forever preferred_lft forever
+5: veth15ff26a@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether e6:a2:22:0d:59:1c brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::e4a2:22ff:fe0d:591c/64 scope link 
+       valid_lft forever preferred_lft forever
