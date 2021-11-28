@@ -19,6 +19,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Fprintf(w, "Header = %q\n", r.Header)
 	for k, v := range r.Header {
 		io.WriteString(w, fmt.Sprintf("%s=%s\n", k, v))
+		for _, valueOfv := range v {
+			w.Header().Add(k, valueOfv)
+		}
 	}
 
 	//2.读取当前系统的环境变量中的 VERSION 配置，并写入 response header
