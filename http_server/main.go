@@ -1,7 +1,9 @@
 package main
 
 import (
+	"cloud_native_learn/metrics"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"log"
 	"net/http"
@@ -9,8 +11,10 @@ import (
 )
 
 func main() {
+	metrics.Register()
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/healthz", healthz)
+	http.Handle("/metrics", promhttp.Handler())
 	http.ListenAndServe(":8000", nil)
 }
 
